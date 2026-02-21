@@ -33,4 +33,5 @@ export const config = {
   elevenlabs: {
     apiKey: process.env.ELEVENLABS_API_KEY || '',
   },
+  allowedEmails: (process.env.ALLOWED_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean),
 };

@@ -4,16 +4,32 @@ import { CallDetail } from './components/CallDetail';
 import { CallForm } from './components/CallForm';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
-import { API_KEY_STORAGE, pingHealth } from './api';
+import { AUTH_TOKEN_STORAGE, pingHealth } from './api';
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => !!localStorage.getItem(API_KEY_STORAGE));
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem(AUTH_TOKEN_STORAGE));
+  const [authError, setAuthError] = useState('');
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [waking, setWaking] = useState(false);
   const wakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Handle OAuth callback: pick up ?token= or ?auth_error= from redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const err = params.get('auth_error');
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_STORAGE, token);
+      setAuthed(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (err) {
+      setAuthError(err);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     wakingTimer.current = setTimeout(() => setWaking(true), 800);
@@ -25,11 +41,11 @@ export default function App() {
   }, []);
 
   if (!authed) {
-    return <Login onLogin={() => setAuthed(true)} />;
+    return <Login error={authError} />;
   }
 
   function handleLogout() {
-    localStorage.removeItem(API_KEY_STORAGE);
+    localStorage.removeItem(AUTH_TOKEN_STORAGE);
     setAuthed(false);
     setSelectedCallId(null);
     setShowForm(false);

@@ -8,8 +8,8 @@ import { callsRouter } from './api/routes/calls';
 import { twilioRouter, handleMediaStream } from './api/routes/twilio';
 import { settingsRouter } from './api/routes/settings';
 import { oauthRouter } from './api/routes/oauth';
+import { authRouter } from './api/routes/auth';
 import { mcpRouter } from './api/routes/mcp';
-import { authMiddleware } from './middleware/auth';
 import { jwtAuth } from './middleware/jwtAuth';
 
 const { app } = expressWs(express());
@@ -19,6 +19,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // OAuth 2.0 endpoints for MCP (public — part of the auth flow itself)
 app.use('/oauth', oauthRouter);
+
+// Frontend Google OAuth (public — part of the auth flow itself)
+app.use('/api/auth', authRouter);
 
 // MCP endpoint for Claude.ai integration (protected by Google OAuth JWT)
 app.use('/mcp', jwtAuth, mcpRouter);
@@ -35,9 +38,9 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
   });
 });
 
-// API routes
-app.use('/api/calls', authMiddleware, callsRouter);
-app.use('/api/settings', authMiddleware, settingsRouter);
+// API routes (protected by Google OAuth JWT)
+app.use('/api/calls', jwtAuth, callsRouter);
+app.use('/api/settings', jwtAuth, settingsRouter);
 app.use('/twilio', twilioRouter);
 
 // WebSocket route — must be on app directly (express-ws doesn't patch sub-routers)

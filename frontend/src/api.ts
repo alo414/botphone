@@ -9,11 +9,11 @@ export async function pingHealth(): Promise<boolean> {
   }
 }
 
-export const API_KEY_STORAGE = 'callops_api_key';
+export const AUTH_TOKEN_STORAGE = 'callops_token';
 
 function authHeaders(): Record<string, string> {
-  const key = localStorage.getItem(API_KEY_STORAGE);
-  return key ? { 'Authorization': `Bearer ${key}` } : {};
+  const token = localStorage.getItem(AUTH_TOKEN_STORAGE);
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
 export interface CallRecord {
