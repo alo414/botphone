@@ -32,6 +32,19 @@ setInterval(() => {
   for (const [k, v] of pendingCodes) if (v.expiresAt < now) pendingCodes.delete(k);
 }, 60_000);
 
+// POST /oauth/register — RFC 7591 dynamic client registration (required by Claude.ai)
+oauthRouter.post('/register', (req, res) => {
+  const clientId = crypto.randomBytes(16).toString('hex');
+  res.status(201).json({
+    client_id: clientId,
+    client_id_issued_at: Math.floor(Date.now() / 1000),
+    redirect_uris: req.body.redirect_uris || [],
+    grant_types: ['authorization_code'],
+    response_types: ['code'],
+    token_endpoint_auth_method: 'none',
+  });
+});
+
 // GET /oauth/authorize — Claude.ai redirects here to start the OAuth flow
 oauthRouter.get('/authorize', (req, res) => {
   const { redirect_uri, state, code_challenge, code_challenge_method, response_type } = req.query as Record<string, string>;

@@ -55,9 +55,11 @@ app.get('/.well-known/oauth-authorization-server', openCors, (_req, res) => {
     issuer: config.publicUrl,
     authorization_endpoint: `${config.publicUrl}/oauth/authorize`,
     token_endpoint: `${config.publicUrl}/oauth/token`,
+    registration_endpoint: `${config.publicUrl}/oauth/register`,
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code'],
     code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none'],
   });
 });
 
