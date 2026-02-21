@@ -113,6 +113,7 @@ export interface AppSettings {
   provider: 'openai' | 'elevenlabs';
   openai: { voice: string; speed: number };
   elevenlabs: { agentId: string };
+  call: { fallbackGreetDelaySec: number; noAudioHangupDelaySec: number };
 }
 
 export async function getSettings(): Promise<AppSettings> {

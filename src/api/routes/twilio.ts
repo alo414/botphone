@@ -113,22 +113,29 @@ export async function handleMediaStream(ws: WebSocket, req: Request) {
   };
 
   const settings = await getSettings();
+  const callBehavior = {
+    fallbackGreetDelaySec: settings.call.fallbackGreetDelaySec,
+    noAudioHangupDelaySec: settings.call.noAudioHangupDelaySec,
+  };
+
   if (settings.provider === 'elevenlabs') {
     if (!config.elevenlabs.apiKey) {
       logger.warn('ElevenLabs selected but ELEVENLABS_API_KEY is not set; falling back to OpenAI', { callId });
-      createMediaBridge(ws, call, callbacks);
+      createMediaBridge(ws, call, callbacks, callBehavior);
     } else {
       logger.info('Using ElevenLabs bridge', { callId, agentId: settings.elevenlabs.agentId, isVoicemail });
       createElevenLabsBridge(ws, call, callbacks, {
         agentId: settings.elevenlabs.agentId,
         apiKey: config.elevenlabs.apiKey,
         isVoicemail,
+        ...callBehavior,
       });
     }
   } else {
     createMediaBridge(ws, call, callbacks, {
       voice: settings.openai.voice,
       speed: settings.openai.speed,
+      ...callBehavior,
     });
   }
 

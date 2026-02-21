@@ -202,6 +202,53 @@ export function Settings({ onClose }: Props) {
               </div>
             )}
 
+            {/* Call Behavior */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: 'var(--text-3)',
+                borderBottom: '1px solid var(--border)', paddingBottom: '8px',
+              }}>
+                Call Behavior
+              </div>
+
+              <div>
+                <label style={label}>
+                  Fallback greet delay — {settings.call.fallbackGreetDelaySec}s
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="60"
+                  step="5"
+                  value={settings.call.fallbackGreetDelaySec}
+                  onChange={e => setSettings({ ...settings, call: { ...settings.call, fallbackGreetDelaySec: parseInt(e.target.value) } })}
+                  style={{ width: '100%', accentColor: 'var(--cyan)', cursor: 'pointer' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>
+                  If no audio is heard after this many seconds, the agent will speak first.
+                </div>
+              </div>
+
+              <div>
+                <label style={label}>
+                  No-audio hang-up delay — {settings.call.noAudioHangupDelaySec}s
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="120"
+                  step="5"
+                  value={settings.call.noAudioHangupDelaySec}
+                  onChange={e => setSettings({ ...settings, call: { ...settings.call, noAudioHangupDelaySec: parseInt(e.target.value) } })}
+                  style={{ width: '100%', accentColor: 'var(--cyan)', cursor: 'pointer' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>
+                  If still no audio from the other party by this point, the call is ended. Must be greater than the greet delay.
+                </div>
+              </div>
+            </div>
+
             {error && (
               <div style={{
                 padding: '10px 12px', borderRadius: '6px',

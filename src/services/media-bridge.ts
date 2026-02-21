@@ -21,18 +21,26 @@ export function createMediaBridge(
   twilioWs: WebSocket,
   call: CallRecord,
   callbacks: MediaBridgeCallbacks,
-  options?: { voice?: string; speed?: number }
+  options?: { voice?: string; speed?: number; fallbackGreetDelaySec?: number; noAudioHangupDelaySec?: number }
 ) {
+  const FALLBACK_GREET_DELAY_MS = (options?.fallbackGreetDelaySec ?? 15) * 1000;
+  const NO_AUDIO_HANGUP_DELAY_MS = (options?.noAudioHangupDelaySec ?? 30) * 1000;
+
   const transcript: TranscriptItem[] = [];
   let streamSid: string | null = null;
   let openaiWs: WebSocket | null = null;
   let callTimeout: NodeJS.Timeout | null = null;
+  let fallbackGreetTimer: NodeJS.Timeout | null = null;
+  let noAudioHangupTimer: NodeJS.Timeout | null = null;
+  let audioReceived = false;
 
   const scope = getScope(call.scope);
   const systemPrompt = scope.buildSystemPrompt(call.objective, call.context, call.business_name || undefined);
 
   function cleanup() {
     if (callTimeout) clearTimeout(callTimeout);
+    if (fallbackGreetTimer) clearTimeout(fallbackGreetTimer);
+    if (noAudioHangupTimer) clearTimeout(noAudioHangupTimer);
     if (openaiWs && openaiWs.readyState === WebSocket.OPEN) {
       openaiWs.close();
     }
@@ -71,7 +79,7 @@ export function createMediaBridge(
   openaiWs.on('open', () => {
     logger.info('OpenAI Realtime WS connected', { callId: call.id });
 
-    // Configure session — response.create is deferred until session.updated confirms it's ready
+    // Configure session
     openaiWs!.send(JSON.stringify({
       type: 'session.update',
       session: {
@@ -128,6 +136,16 @@ export function createMediaBridge(
           }
           break;
 
+        case 'input_audio_buffer.speech_started':
+          // Other party started speaking — cancel silence timers
+          if (!audioReceived) {
+            audioReceived = true;
+            if (fallbackGreetTimer) clearTimeout(fallbackGreetTimer);
+            if (noAudioHangupTimer) clearTimeout(noAudioHangupTimer);
+            logger.info('Other party speech detected, cancelling silence timers', { callId: call.id });
+          }
+          break;
+
         case 'error':
           logger.error('OpenAI Realtime error', { callId: call.id, error: event.error });
           break;
@@ -168,6 +186,29 @@ export function createMediaBridge(
         case 'start':
           streamSid = msg.start.streamSid;
           logger.info('Twilio media stream started', { callId: call.id, streamSid });
+
+          // Fallback greet: if no speech detected after N seconds, have the agent speak first
+          fallbackGreetTimer = setTimeout(() => {
+            if (!audioReceived && openaiWs && openaiWs.readyState === WebSocket.OPEN) {
+              logger.info('No audio after delay, sending fallback greeting', { callId: call.id });
+              openaiWs.send(JSON.stringify({
+                type: 'response.create',
+                response: {
+                  modalities: ['text', 'audio'],
+                  instructions: `The other party has not spoken yet. Greet them now. ${scope.initialGreeting(call.business_name || undefined)} Your objective is: "${call.objective}".`,
+                },
+              }));
+            }
+          }, FALLBACK_GREET_DELAY_MS);
+
+          // No-audio hangup: if still no speech by N seconds, end the call
+          noAudioHangupTimer = setTimeout(() => {
+            if (!audioReceived) {
+              logger.warn('No audio after hangup delay, ending call', { callId: call.id });
+              cleanup();
+              callbacks.onCallEnd([...transcript]);
+            }
+          }, NO_AUDIO_HANGUP_DELAY_MS);
           break;
 
         case 'media':

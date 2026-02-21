@@ -4,12 +4,14 @@ export interface AppSettings {
   provider: 'openai' | 'elevenlabs';
   openai: { voice: string; speed: number };
   elevenlabs: { agentId: string };
+  call: { fallbackGreetDelaySec: number; noAudioHangupDelaySec: number };
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   provider: 'openai',
   openai: { voice: 'ash', speed: 1.2 },
   elevenlabs: { agentId: '' },
+  call: { fallbackGreetDelaySec: 15, noAudioHangupDelaySec: 30 },
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -25,6 +27,7 @@ export async function updateSettings(data: Partial<AppSettings>): Promise<AppSet
     ...data,
     openai: { ...current.openai, ...(data.openai || {}) },
     elevenlabs: { ...current.elevenlabs, ...(data.elevenlabs || {}) },
+    call: { ...current.call, ...(data.call || {}) },
   };
   await pool.query(
     `UPDATE settings SET data = $1, updated_at = NOW() WHERE id = 1`,
