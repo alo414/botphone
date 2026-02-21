@@ -12,7 +12,7 @@ export async function pingHealth(): Promise<boolean> {
 export const AUTH_TOKEN_STORAGE = 'callops_token';
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem(AUTH_TOKEN_STORAGE);
+  const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE);
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 

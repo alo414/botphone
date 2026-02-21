@@ -1,5 +1,7 @@
 import express from 'express';
 import expressWs from 'express-ws';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { config } from './config';
 import { initDatabase } from './db/init';
@@ -14,17 +16,22 @@ import { jwtAuth } from './middleware/jwtAuth';
 
 const { app } = expressWs(express());
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const authLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
+const callCreationLimiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false });
+const mcpLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false });
+
 // OAuth 2.0 endpoints for MCP (public — part of the auth flow itself)
-app.use('/oauth', oauthRouter);
+app.use('/oauth', authLimiter, oauthRouter);
 
 // Frontend Google OAuth (public — part of the auth flow itself)
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 
 // MCP endpoint for Claude.ai integration (protected by Google OAuth JWT)
-app.use('/mcp', jwtAuth, mcpRouter);
+app.use('/mcp', mcpLimiter, jwtAuth, mcpRouter);
 
 // OAuth metadata — Claude.ai discovers this to initiate the OAuth flow
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
@@ -39,7 +46,7 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
 });
 
 // API routes (protected by Google OAuth JWT)
-app.use('/api/calls', jwtAuth, callsRouter);
+app.use('/api/calls', jwtAuth, callCreationLimiter, callsRouter);
 app.use('/api/settings', jwtAuth, settingsRouter);
 app.use('/twilio', twilioRouter);
 

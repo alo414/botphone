@@ -9,7 +9,9 @@ export default defineConfig({
         target: 'http://localhost:3000',
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('x-api-key', '126590d2ac4858a3b992da427c8a796a9792504731415b38399686d4c9774a3c');
+            if (process.env.DEV_API_KEY) {
+              proxyReq.setHeader('x-api-key', process.env.DEV_API_KEY);
+            }
           });
         },
       },

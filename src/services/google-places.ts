@@ -7,7 +7,7 @@ interface PlaceDetails {
 }
 
 export async function resolvePlaceId(placeId: string): Promise<PlaceDetails> {
-  const url = `https://places.googleapis.com/v1/places/${placeId}`;
+  const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`;
 
   const res = await fetch(url, {
     headers: {

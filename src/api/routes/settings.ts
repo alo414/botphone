@@ -1,5 +1,17 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { getSettings, updateSettings } from '../../db/queries/settings';
+
+const settingsSchema = z.object({
+  provider: z.enum(['openai', 'elevenlabs']).optional(),
+  openai: z.object({
+    voice: z.string().min(1).max(100),
+    speed: z.number().min(0.25).max(4),
+  }).optional(),
+  elevenlabs: z.object({
+    agentId: z.string().max(200),
+  }).optional(),
+});
 
 const router = Router();
 
@@ -16,10 +28,15 @@ router.get('/', async (_req, res) => {
 // PUT /api/settings
 router.put('/', async (req, res) => {
   try {
-    const updated = await updateSettings(req.body);
+    const parsed = settingsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation error', details: parsed.error.issues });
+      return;
+    }
+    const updated = await updateSettings(parsed.data);
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

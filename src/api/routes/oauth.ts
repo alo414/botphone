@@ -45,6 +45,11 @@ oauthRouter.get('/authorize', (req, res) => {
     return;
   }
 
+  if (config.oauthAllowedRedirectUris.length === 0 || !config.oauthAllowedRedirectUris.includes(redirect_uri)) {
+    res.status(400).json({ error: 'invalid_redirect_uri' });
+    return;
+  }
+
   const ourState = crypto.randomBytes(16).toString('hex');
   pendingAuthorizations.set(ourState, {
     clientRedirectUri: redirect_uri,

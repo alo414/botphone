@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 import { config } from '../../config';
+import { twilioWebhookAuth } from '../../middleware/twilioAuth';
 import { logger } from '../../utils/logger';
 import { handleStatusCallback, setActiveCallTranscript, handleCallEnd } from '../../services/call-manager';
 import { createMediaBridge } from '../../services/media-bridge';
@@ -13,7 +14,7 @@ import type { Request } from 'express';
 const router = Router();
 
 // POST /twilio/voice — TwiML webhook, called when the outbound call is answered
-router.post('/voice', (req, res) => {
+router.post('/voice', twilioWebhookAuth, (req, res) => {
   const callId = req.query.callId as string;
   const answeredBy = req.body.AnsweredBy as string | undefined;
   logger.info('TwiML voice webhook hit', { callId, answeredBy });
@@ -35,7 +36,7 @@ router.post('/voice', (req, res) => {
 });
 
 // POST /twilio/status — Status callback from Twilio
-router.post('/status', async (req, res) => {
+router.post('/status', twilioWebhookAuth, async (req, res) => {
   const callId = req.query.callId as string;
   const callStatus = req.body.CallStatus;
 

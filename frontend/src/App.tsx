@@ -7,7 +7,7 @@ import { Login } from './components/Login';
 import { AUTH_TOKEN_STORAGE, pingHealth } from './api';
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => !!localStorage.getItem(AUTH_TOKEN_STORAGE));
+  const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_TOKEN_STORAGE));
   const [authError, setAuthError] = useState('');
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -22,7 +22,7 @@ export default function App() {
     const token = params.get('token');
     const err = params.get('auth_error');
     if (token) {
-      localStorage.setItem(AUTH_TOKEN_STORAGE, token);
+      sessionStorage.setItem(AUTH_TOKEN_STORAGE, token);
       setAuthed(true);
       window.history.replaceState({}, '', window.location.pathname);
     } else if (err) {
@@ -45,7 +45,7 @@ export default function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem(AUTH_TOKEN_STORAGE);
+    sessionStorage.removeItem(AUTH_TOKEN_STORAGE);
     setAuthed(false);
     setSelectedCallId(null);
     setShowForm(false);
