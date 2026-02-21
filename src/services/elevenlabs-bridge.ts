@@ -73,7 +73,6 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           voice_id: undefined,
         },
       },
-      custom_llm_extra_body: {},
     }));
   });
 
@@ -162,10 +161,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           // Forward audio from Twilio to ElevenLabs
           if (elWs && elWs.readyState === WebSocket.OPEN) {
             elWs.send(JSON.stringify({
-              type: 'audio',
-              audio_event: {
-                audio_base_64: msg.media.payload,
-              },
+              user_audio_chunk: msg.media.payload,
             }));
           }
           break;
