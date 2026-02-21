@@ -1,5 +1,14 @@
 const BASE = '/api';
 
+export async function pingHealth(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/health`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const API_KEY_STORAGE = 'callops_api_key';
 
 function authHeaders(): Record<string, string> {

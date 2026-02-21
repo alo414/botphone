@@ -216,6 +216,15 @@ function createMcpServer(): McpServer {
     }
   );
 
+  server.tool(
+    'wake',
+    'Wake the call-agent server if it has scaled to zero. Call this before make_call if the server may be cold. Returns immediately once the server is up.',
+    {},
+    async () => ({
+      content: [{ type: 'text' as const, text: 'Server is awake and ready.' }],
+    })
+  );
+
   return server;
 }
 

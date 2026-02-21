@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CallList } from './components/CallList';
 import { CallDetail } from './components/CallDetail';
 import { CallForm } from './components/CallForm';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
-import { API_KEY_STORAGE } from './api';
+import { API_KEY_STORAGE, pingHealth } from './api';
 
 export default function App() {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem(API_KEY_STORAGE));
@@ -12,6 +12,17 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [waking, setWaking] = useState(false);
+  const wakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    wakingTimer.current = setTimeout(() => setWaking(true), 800);
+    pingHealth().finally(() => {
+      if (wakingTimer.current) clearTimeout(wakingTimer.current);
+      setWaking(false);
+    });
+    return () => { if (wakingTimer.current) clearTimeout(wakingTimer.current); };
+  }, []);
 
   if (!authed) {
     return <Login onLogin={() => setAuthed(true)} />;
@@ -144,6 +155,24 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* Waking banner */}
+      {waking && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '7px 20px',
+          background: 'rgba(255,170,0,0.07)',
+          borderBottom: '1px solid rgba(255,170,0,0.2)',
+          fontSize: '12px',
+          color: 'rgba(255,170,0,0.9)',
+          flexShrink: 0,
+        }}>
+          <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', fontSize: '11px' }}>⟳</span>
+          Server is starting up — this takes a few seconds...
+        </div>
+      )}
 
       {/* Body */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
