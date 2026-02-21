@@ -4,6 +4,7 @@ import * as callQueries from '../../db/queries/calls';
 import { resolvePlaceId } from '../../services/google-places';
 import { toE164, isValidPhone } from '../../utils/phone';
 import { initiateCall, getActiveCall } from '../../services/call-manager';
+import { hangupCall } from '../../services/twilio';
 import { logger } from '../../utils/logger';
 import { ScopeName } from '../../types';
 
@@ -110,6 +111,31 @@ callsRouter.get('/:id/transcript/live', (req, res) => {
     return;
   }
   res.json({ transcript: active.transcript });
+});
+
+// POST /api/calls/:id/hangup — hang up an active call
+callsRouter.post('/:id/hangup', async (req, res) => {
+  try {
+    const call = await callQueries.getCall(req.params.id);
+    if (!call) {
+      res.status(404).json({ error: 'Call not found' });
+      return;
+    }
+    if (!call.twilio_call_sid) {
+      res.status(400).json({ error: 'Call has no Twilio SID' });
+      return;
+    }
+    const activeStatuses = ['queued', 'ringing', 'in_progress'];
+    if (!activeStatuses.includes(call.status)) {
+      res.status(400).json({ error: `Call is already ${call.status}` });
+      return;
+    }
+    await hangupCall(call.twilio_call_sid);
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error('Error hanging up call', { error: (err as Error).message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET /api/calls/:id — get call with transcript

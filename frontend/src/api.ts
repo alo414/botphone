@@ -80,6 +80,17 @@ export async function getCall(id: string): Promise<CallRecord> {
   return res.json();
 }
 
+export async function hangupCall(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/calls/${id}/hangup`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+}
+
 export async function getLiveTranscript(id: string): Promise<{ transcript: TranscriptItem[] }> {
   const res = await fetch(`${BASE}/calls/${id}/transcript/live`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

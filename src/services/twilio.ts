@@ -4,6 +4,11 @@ import { logger } from '../utils/logger';
 
 const client = Twilio(config.twilio.accountSid, config.twilio.authToken);
 
+export async function hangupCall(callSid: string): Promise<void> {
+  await client.calls(callSid).update({ status: 'completed' });
+  logger.info('Call hung up', { callSid });
+}
+
 export async function createOutboundCall(params: {
   to: string;
   callId: string;

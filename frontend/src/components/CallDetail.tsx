@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCall, getLiveTranscript } from '../api';
+import { getCall, getLiveTranscript, hangupCall } from '../api';
 import type { CallRecord, TranscriptItem } from '../api';
 import { StatusBadge } from './StatusBadge';
 
@@ -93,6 +93,7 @@ export function CallDetail({ callId, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [hangingUp, setHangingUp] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
@@ -204,6 +205,31 @@ export function CallDetail({ callId, onBack }: Props) {
                 {name}
               </h2>
               <StatusBadge status={call.status} />
+              {isActive && (
+                <button
+                  onClick={() => {
+                    setHangingUp(true);
+                    hangupCall(callId).catch(() => {}).finally(() => setHangingUp(false));
+                  }}
+                  disabled={hangingUp}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255,79,79,0.4)',
+                    background: 'rgba(255,79,79,0.08)',
+                    color: 'var(--red)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    cursor: hangingUp ? 'not-allowed' : 'pointer',
+                    opacity: hangingUp ? 0.5 : 1,
+                    fontFamily: "'Syne', sans-serif",
+                  }}
+                >
+                  {hangingUp ? 'Hanging up…' : '✕ Hang Up'}
+                </button>
+              )}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-3)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {call.business_name && <span>{call.phone_number}</span>}
