@@ -1,0 +1,38 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - '-t'
+      - 'us-east4-docker.pkg.dev/botphone-2024/call-agent/call-agent:$COMMIT_SHA'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/botphone-2024/call-agent/call-agent:latest'
+      - '.'
+
+  # Push both tags
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', 'us-east4-docker.pkg.dev/botphone-2024/call-agent/call-agent']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - call-agent
+      - '--image=us-east4-docker.pkg.dev/botphone-2024/call-agent/call-agent:$COMMIT_SHA'
+      - '--platform=managed'
+      - '--region=us-east4'
+      - '--project=botphone-2024'
+      - '--allow-unauthenticated'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--port=3000'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+
+timeout: 1200s
