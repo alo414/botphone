@@ -17,7 +17,7 @@ import { jwtAuth } from './middleware/jwtAuth';
 
 const { app } = expressWs(express());
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,8 +39,10 @@ app.use('/mcp', mcpCors, (req, res, next) => {
   next();
 }, mcpLimiter, jwtAuth, mcpRouter);
 
+const openCors = cors({ origin: true });
+
 // OAuth Protected Resource Metadata (RFC 9728) — MCP spec requires this for auth discovery
-app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+app.get('/.well-known/oauth-protected-resource', openCors, (_req, res) => {
   res.json({
     resource: config.publicUrl,
     authorization_servers: [config.publicUrl],
@@ -48,7 +50,7 @@ app.get('/.well-known/oauth-protected-resource', (_req, res) => {
 });
 
 // OAuth metadata — Claude.ai discovers this to initiate the OAuth flow
-app.get('/.well-known/oauth-authorization-server', (_req, res) => {
+app.get('/.well-known/oauth-authorization-server', openCors, (_req, res) => {
   res.json({
     issuer: config.publicUrl,
     authorization_endpoint: `${config.publicUrl}/oauth/authorize`,
