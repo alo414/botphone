@@ -5,6 +5,7 @@ import { CallRecord } from '../types';
 import type { MediaBridgeCallbacks } from './media-bridge';
 
 const MAX_CALL_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const SILENCE_TIMEOUT_MS = 30 * 1000; // 30 seconds
 
 export function createElevenLabsBridge(
   twilioWs: WebSocket,
@@ -16,6 +17,7 @@ export function createElevenLabsBridge(
   let streamSid: string | null = null;
   let elWs: WebSocket | null = null;
   let callTimeout: NodeJS.Timeout | null = null;
+  let silenceTimeout: NodeJS.Timeout | null = null;
   let ended = false;
 
   const scope = getScope(call.scope);
@@ -26,10 +28,19 @@ export function createElevenLabsBridge(
 IMPORTANT: You have reached a voicemail. Leave your message clearly and concisely — cover the key points of your objective in a single message, then say goodbye and stop speaking. Do not repeat yourself. If the recipient picks up the phone and starts speaking to you during your message, immediately stop and switch to a natural live conversation with them.`
     : basePrompt;
 
+  function resetSilenceTimer() {
+    if (silenceTimeout) clearTimeout(silenceTimeout);
+    silenceTimeout = setTimeout(() => {
+      logger.warn('Silence timeout reached, ending call', { callId: call.id });
+      finish();
+    }, SILENCE_TIMEOUT_MS);
+  }
+
   function cleanup() {
     if (ended) return;
     ended = true;
     if (callTimeout) clearTimeout(callTimeout);
+    if (silenceTimeout) clearTimeout(silenceTimeout);
     if (elWs && elWs.readyState === WebSocket.OPEN) {
       elWs.close();
     }
@@ -84,6 +95,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
         case 'audio':
           // Forward audio from ElevenLabs to Twilio
           if (streamSid && event.audio_event?.audio_base_64) {
+            resetSilenceTimer();
             twilioWs.send(JSON.stringify({
               event: 'media',
               streamSid,
@@ -96,6 +108,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
         case 'agent_response':
           if (event.agent_response_event?.agent_response) {
+            resetSilenceTimer();
             transcript.push({ role: 'agent', text: event.agent_response_event.agent_response });
             callbacks.onTranscriptUpdate([...transcript]);
           }
@@ -103,6 +116,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
         case 'user_transcript':
           if (event.user_transcription_event?.user_transcript) {
+            resetSilenceTimer();
             transcript.push({ role: 'user', text: event.user_transcription_event.user_transcript });
             callbacks.onTranscriptUpdate([...transcript]);
           }
@@ -155,6 +169,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
         case 'start':
           streamSid = msg.start.streamSid;
           logger.info('Twilio media stream started (ElevenLabs bridge)', { callId: call.id, streamSid });
+          resetSilenceTimer();
           break;
 
         case 'media':
