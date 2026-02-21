@@ -152,11 +152,12 @@ export function CallDetail({ callId, onBack }: Props) {
       </div>
     );
   }
-  if (error) {
+  if (error || !call) {
+    const msg = error ?? 'Call not found';
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
-        <span style={{ color: 'var(--red)', fontSize: '13px' }}>{error}</span>
-        {error !== 'Call not found' && (
+        <span style={{ color: 'var(--red)', fontSize: '13px' }}>{msg}</span>
+        {msg !== 'Call not found' && (
           <button onClick={() => setRetryKey(k => k + 1)} style={{
             padding: '6px 16px', borderRadius: '6px', border: '1px solid var(--border-2)',
             background: 'var(--surface)', color: 'var(--text-2)', fontSize: '12px', cursor: 'pointer',
