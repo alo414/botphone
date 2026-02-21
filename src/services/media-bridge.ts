@@ -27,7 +27,6 @@ export function createMediaBridge(
   let streamSid: string | null = null;
   let openaiWs: WebSocket | null = null;
   let callTimeout: NodeJS.Timeout | null = null;
-  let greetingSent = false;
 
   const scope = getScope(call.scope);
   const systemPrompt = scope.buildSystemPrompt(call.objective, call.context, call.business_name || undefined);
@@ -139,17 +138,7 @@ export function createMediaBridge(
 
         case 'session.updated':
           logger.info('OpenAI session configured', { callId: call.id });
-          // Now that the session is fully configured, kick off the initial greeting (only once)
-          if (!greetingSent) {
-            greetingSent = true;
-            openaiWs!.send(JSON.stringify({
-              type: 'response.create',
-              response: {
-                modalities: ['text', 'audio'],
-                instructions: `Begin the call now. ${scope.initialGreeting(call.business_name || undefined)} Your specific objective for this call is: "${call.objective}". Get straight to it after a brief greeting.`,
-              },
-            }));
-          }
+          // Wait for the other party to speak first — VAD will trigger a response when they greet
           break;
       }
     } catch (err) {

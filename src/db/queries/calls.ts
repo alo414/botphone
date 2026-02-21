@@ -60,6 +60,13 @@ export async function updateCallStatus(id: string, status: CallStatus): Promise<
   );
 }
 
+export async function updateCallObjective(id: string, objective: string): Promise<void> {
+  await pool.query(
+    'UPDATE calls SET objective = $1, updated_at = NOW() WHERE id = $2',
+    [objective, id]
+  );
+}
+
 export async function updateCallSid(id: string, sid: string): Promise<void> {
   await pool.query(
     'UPDATE calls SET twilio_call_sid = $1, updated_at = NOW() WHERE id = $2',

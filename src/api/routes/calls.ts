@@ -138,6 +138,31 @@ callsRouter.post('/:id/hangup', async (req, res) => {
   }
 });
 
+// PATCH /api/calls/:id — update objective (only while queued or ringing)
+callsRouter.patch('/:id', async (req, res) => {
+  try {
+    const call = await callQueries.getCall(req.params.id);
+    if (!call) {
+      res.status(404).json({ error: 'Call not found' });
+      return;
+    }
+    if (!['queued', 'ringing'].includes(call.status)) {
+      res.status(409).json({ error: 'Objective can only be updated before the call is answered' });
+      return;
+    }
+    const { objective } = req.body;
+    if (typeof objective !== 'string' || objective.trim().length === 0 || objective.length > 1000) {
+      res.status(400).json({ error: 'objective must be a non-empty string (max 1000 chars)' });
+      return;
+    }
+    await callQueries.updateCallObjective(req.params.id, objective.trim());
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error('Error updating call objective', { error: (err as Error).message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/calls/:id — get call with transcript
 callsRouter.get('/:id', async (req, res) => {
   try {

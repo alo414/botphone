@@ -67,7 +67,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           },
           first_message: config.isVoicemail
             ? `Hi, I'm leaving a message regarding: ${call.objective}. ${scope.initialGreeting(call.business_name || undefined)}`
-            : scope.initialGreeting(call.business_name || undefined),
+            : '',
         },
         tts: {
           voice_id: undefined,

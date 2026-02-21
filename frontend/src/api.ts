@@ -91,6 +91,18 @@ export async function hangupCall(id: string): Promise<void> {
   }
 }
 
+export async function updateCallObjective(id: string, objective: string): Promise<void> {
+  const res = await fetch(`${BASE}/calls/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ objective }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+}
+
 export async function getLiveTranscript(id: string): Promise<{ transcript: TranscriptItem[] }> {
   const res = await fetch(`${BASE}/calls/${id}/transcript/live`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

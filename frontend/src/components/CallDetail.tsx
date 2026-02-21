@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCall, getLiveTranscript, hangupCall } from '../api';
+import { getCall, getLiveTranscript, hangupCall, updateCallObjective } from '../api';
 import type { CallRecord, TranscriptItem } from '../api';
 import { StatusBadge } from './StatusBadge';
 
 const ACTIVE = new Set(['queued', 'ringing', 'in_progress']);
+const PRE_ANSWER = new Set(['queued', 'ringing']);
 
 function formatKey(k: string) {
   return k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
@@ -94,6 +95,10 @@ export function CallDetail({ callId, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [hangingUp, setHangingUp] = useState(false);
+  const [editingObjective, setEditingObjective] = useState(false);
+  const [objectiveDraft, setObjectiveDraft] = useState('');
+  const [savingObjective, setSavingObjective] = useState(false);
+  const [objectiveError, setObjectiveError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
@@ -240,18 +245,110 @@ export function CallDetail({ callId, onBack }: Props) {
           </div>
         </div>
 
-        <div style={{
-          marginTop: '12px',
-          fontSize: '13px',
-          color: 'var(--text-2)',
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: '6px',
-          padding: '8px 12px',
-        }}>
-          <span style={{ color: 'var(--text-3)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '8px' }}>Objective</span>
-          {call.objective}
-        </div>
+        {/* Objective — editable before answered */}
+        {editingObjective ? (
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: '6px' }}>
+              Objective
+            </div>
+            <textarea
+              autoFocus
+              value={objectiveDraft}
+              onChange={e => { setObjectiveDraft(e.target.value); setObjectiveError(null); }}
+              rows={3}
+              style={{
+                width: '100%',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--amber)',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                fontSize: '13px',
+                color: 'var(--text)',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            {objectiveError && (
+              <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '4px' }}>{objectiveError}</div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              <button
+                disabled={savingObjective}
+                onClick={async () => {
+                  const trimmed = objectiveDraft.trim();
+                  if (!trimmed) { setObjectiveError('Objective cannot be empty'); return; }
+                  setSavingObjective(true);
+                  try {
+                    await updateCallObjective(call.id, trimmed);
+                    setCall(c => c ? { ...c, objective: trimmed } : c);
+                    setEditingObjective(false);
+                  } catch (err) {
+                    setObjectiveError((err as Error).message);
+                  } finally {
+                    setSavingObjective(false);
+                  }
+                }}
+                style={{
+                  padding: '4px 14px', borderRadius: '6px',
+                  border: '1px solid rgba(0,212,150,0.4)', background: 'rgba(0,212,150,0.08)',
+                  color: 'var(--green)', fontSize: '11px', fontWeight: 700,
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  cursor: savingObjective ? 'not-allowed' : 'pointer', opacity: savingObjective ? 0.5 : 1,
+                }}
+              >
+                {savingObjective ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                onClick={() => { setEditingObjective(false); setObjectiveError(null); }}
+                style={{
+                  padding: '4px 14px', borderRadius: '6px',
+                  border: '1px solid var(--border-2)', background: 'none',
+                  color: 'var(--text-3)', fontSize: '11px', fontWeight: 600,
+                  letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            marginTop: '12px',
+            fontSize: '13px',
+            color: 'var(--text-2)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div>
+              <span style={{ color: 'var(--text-3)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '8px' }}>Objective</span>
+              {call.objective}
+            </div>
+            {PRE_ANSWER.has(call.status) && (
+              <button
+                onClick={() => { setObjectiveDraft(call.objective); setEditingObjective(true); setObjectiveError(null); }}
+                style={{
+                  flexShrink: 0,
+                  background: 'none', border: 'none',
+                  color: 'var(--text-3)', fontSize: '11px',
+                  cursor: 'pointer', padding: '0 2px',
+                  fontFamily: "'Syne', sans-serif",
+                  letterSpacing: '0.05em',
+                }}
+                title="Edit objective"
+              >
+                ✎ Edit
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Summary */}
