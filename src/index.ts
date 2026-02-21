@@ -65,7 +65,9 @@ app.get('/.well-known/oauth-authorization-server', openCors, (_req, res) => {
 });
 
 // API routes (protected by Google OAuth JWT)
-app.use('/api/calls', jwtAuth, callCreationLimiter, callsRouter);
+// callCreationLimiter applied only to POST — reads are polled frequently during active calls
+app.post('/api/calls', jwtAuth, callCreationLimiter);
+app.use('/api/calls', jwtAuth, callsRouter);
 app.use('/api/settings', jwtAuth, settingsRouter);
 app.use('/twilio', twilioRouter);
 
