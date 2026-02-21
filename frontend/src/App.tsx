@@ -63,7 +63,7 @@ export default function App() {
             textTransform: 'uppercase',
             color: 'var(--text)',
           }}>
-            CallOps
+            Botphone
           </span>
           <span style={{
             width: '1px', height: '16px',

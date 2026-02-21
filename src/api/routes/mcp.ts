@@ -12,7 +12,7 @@ import { CallStatus } from '../../types';
 export const mcpRouter = Router();
 
 function createMcpServer(): McpServer {
-  const server = new McpServer({ name: 'call-agent', version: '1.0.0' });
+  const server = new McpServer({ name: 'botphone', version: '1.0.0' });
 
   server.tool(
     'make_call',
@@ -218,7 +218,7 @@ function createMcpServer(): McpServer {
 
   server.tool(
     'wake',
-    'Wake the call-agent server if it has scaled to zero. Call this before make_call if the server may be cold. Returns immediately once the server is up.',
+    'Wake the botphone server if it has scaled to zero. Call this before make_call if the server may be cold. Returns immediately once the server is up.',
     {},
     async () => ({
       content: [{ type: 'text' as const, text: 'Server is awake and ready.' }],

@@ -71,7 +71,7 @@ export function Login({ onLogin }: Props) {
             textTransform: 'uppercase',
             color: 'var(--text)',
           }}>
-            CallOps
+            Botphone
           </span>
           <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>
             Enter your API key to continue
