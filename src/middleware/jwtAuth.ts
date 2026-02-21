@@ -2,11 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 
+const wwwAuthenticate = () =>
+  `Bearer resource_metadata="${config.publicUrl}/.well-known/oauth-protected-resource"`;
+
 export function jwtAuth(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers['authorization'];
   const token = (typeof header === 'string' ? header : header?.[0])?.replace(/^Bearer\s+/i, '').trim();
 
   if (!token) {
+    res.setHeader('WWW-Authenticate', wwwAuthenticate());
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

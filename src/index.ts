@@ -33,6 +33,14 @@ app.use('/api/auth', authLimiter, authRouter);
 // MCP endpoint for Claude.ai integration (protected by Google OAuth JWT)
 app.use('/mcp', mcpLimiter, jwtAuth, mcpRouter);
 
+// OAuth Protected Resource Metadata (RFC 9728) — MCP spec requires this for auth discovery
+app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+  res.json({
+    resource: config.publicUrl,
+    authorization_servers: [config.publicUrl],
+  });
+});
+
 // OAuth metadata — Claude.ai discovers this to initiate the OAuth flow
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
   res.json({
