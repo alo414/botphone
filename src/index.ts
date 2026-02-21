@@ -17,6 +17,7 @@ import { jwtAuth } from './middleware/jwtAuth';
 
 const { app } = expressWs(express());
 
+app.set('trust proxy', 1); // Cloud Run sits behind Google's load balancer
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
