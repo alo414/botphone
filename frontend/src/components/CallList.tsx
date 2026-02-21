@@ -34,13 +34,12 @@ export function CallList({ selectedCallId, onSelectCall, refreshKey }: Props) {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  // Auto-refresh while any call is active
+  // Fast-poll while any call is active; slow-poll always to catch MCP-created calls
   useEffect(() => {
     const hasActive = calls.some(c => ACTIVE.has(c.status));
-    if (!hasActive) return;
     const id = setInterval(() => {
       listCalls({ limit: 50 }).then(setCalls).catch(() => {});
-    }, 2500);
+    }, hasActive ? 2500 : 10000);
     return () => clearInterval(id);
   }, [calls]);
 
