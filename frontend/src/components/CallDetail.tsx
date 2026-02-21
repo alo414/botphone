@@ -91,6 +91,8 @@ export function CallDetail({ callId, onBack }: Props) {
   const [call, setCall] = useState<CallRecord | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<TranscriptItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
@@ -98,13 +100,19 @@ export function CallDetail({ callId, onBack }: Props) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     setLiveTranscript([]);
     prevCountRef.current = 0;
     getCall(callId)
       .then(data => { if (!cancelled) { setCall(data); setLoading(false); } })
-      .catch(() => { if (!cancelled) setLoading(false); });
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setError(err.message.includes('404') ? 'Call not found' : 'Failed to load — tap to retry');
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
-  }, [callId]);
+  }, [callId, retryKey]);
 
   // Refresh call record while active
   useEffect(() => {
@@ -144,10 +152,18 @@ export function CallDetail({ callId, onBack }: Props) {
       </div>
     );
   }
-  if (!call) {
+  if (error) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--red)', fontSize: '13px' }}>
-        Call not found
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
+        <span style={{ color: 'var(--red)', fontSize: '13px' }}>{error}</span>
+        {error !== 'Call not found' && (
+          <button onClick={() => setRetryKey(k => k + 1)} style={{
+            padding: '6px 16px', borderRadius: '6px', border: '1px solid var(--border-2)',
+            background: 'var(--surface)', color: 'var(--text-2)', fontSize: '12px', cursor: 'pointer',
+          }}>
+            Retry
+          </button>
+        )}
       </div>
     );
   }
