@@ -1,6 +1,7 @@
 import express from 'express';
 import expressWs from 'express-ws';
 import helmet from 'helmet';
+import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { config } from './config';
@@ -31,7 +32,12 @@ app.use('/oauth', authLimiter, oauthRouter);
 app.use('/api/auth', authLimiter, authRouter);
 
 // MCP endpoint for Claude.ai integration (protected by Google OAuth JWT)
-app.use('/mcp', mcpLimiter, jwtAuth, mcpRouter);
+// CORS must come before jwtAuth so OPTIONS preflight bypasses auth
+const mcpCors = cors({ origin: true, allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Mcp-Session-Id'] });
+app.use('/mcp', mcpCors, (req, res, next) => {
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+}, mcpLimiter, jwtAuth, mcpRouter);
 
 // OAuth Protected Resource Metadata (RFC 9728) — MCP spec requires this for auth discovery
 app.get('/.well-known/oauth-protected-resource', (_req, res) => {

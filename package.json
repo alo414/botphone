@@ -14,7 +14,9 @@
   "description": "",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
