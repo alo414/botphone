@@ -26,6 +26,7 @@ export function createElevenLabsBridge(
   let noAudioHangupTimer: NodeJS.Timeout | null = null;
   let ended = false;
   let audioReceived = false;
+  let firstAudioLogged = false;
 
   const scope = getScope(call.scope);
   const basePrompt = scope.buildSystemPrompt(call.objective, call.context, call.business_name || undefined);
@@ -81,6 +82,12 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
         switch (event.type) {
           case 'audio':
             // Forward audio from ElevenLabs to Twilio (handle both field formats)
+            if (!firstAudioLogged) {
+              firstAudioLogged = true;
+              const keys = Object.keys(event);
+              const audioKeys = event.audio ? Object.keys(event.audio) : event.audio_event ? Object.keys(event.audio_event) : [];
+              logger.info('ElevenLabs first audio event structure', { callId: call.id, keys, audioKeys });
+            }
             const audioPayload = event.audio?.chunk ?? event.audio_event?.audio_base_64;
             if (streamSid && audioPayload) {
               twilioWs.send(JSON.stringify({
@@ -123,7 +130,10 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
             break;
 
           case 'conversation_initiation_metadata':
-            logger.info('ElevenLabs conversation initiated', { callId: call.id });
+            logger.info('ElevenLabs conversation initiated', {
+              callId: call.id,
+              metadata: JSON.stringify(event.conversation_initiation_metadata_event ?? event),
+            });
             break;
 
           case 'ping':
