@@ -36,4 +36,5 @@ export const config = {
   allowedEmails: (process.env.ALLOWED_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean),
   oauthAllowedRedirectUris: (process.env.OAUTH_ALLOWED_REDIRECT_URIS || '')
     .split(',').map(u => u.trim()).filter(Boolean),
+  devBypassAuth: process.env.DEV_BYPASS_AUTH === 'true',
 };

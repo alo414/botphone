@@ -114,6 +114,7 @@ export interface AppSettings {
   openai: { voice: string; speed: number };
   elevenlabs: { agentId: string };
   call: { fallbackGreetDelaySec: number; noAudioHangupDelaySec: number };
+  testCall: { phoneNumber: string };
 }
 
 export async function getSettings(): Promise<AppSettings> {
@@ -132,6 +133,12 @@ export async function updateSettings(data: Partial<AppSettings>): Promise<AppSet
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
+  return res.json();
+}
+
+export async function getAuthMode(): Promise<{ bypassAuth: boolean }> {
+  const res = await fetch(`${BASE}/auth/mode`);
+  if (!res.ok) return { bypassAuth: false };
   return res.json();
 }
 

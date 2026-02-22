@@ -249,6 +249,31 @@ export function Settings({ onClose }: Props) {
               </div>
             </div>
 
+            {/* Test Call */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: 'var(--text-3)',
+                borderBottom: '1px solid var(--border)', paddingBottom: '8px',
+              }}>
+                Test Call
+              </div>
+
+              <div>
+                <label style={label}>Phone Number</label>
+                <input
+                  type="tel"
+                  value={settings.testCall?.phoneNumber ?? ''}
+                  onChange={e => setSettings({ ...settings, testCall: { ...settings.testCall, phoneNumber: e.target.value } })}
+                  placeholder="+1 (555) 000-0000"
+                  style={input}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px' }}>
+                  Your phone number for quick test calls from the dashboard.
+                </div>
+              </div>
+            </div>
+
             {error && (
               <div style={{
                 padding: '10px 12px', borderRadius: '6px',

@@ -4,7 +4,7 @@ import { CallDetail } from './components/CallDetail';
 import { CallForm } from './components/CallForm';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
-import { AUTH_TOKEN_STORAGE, pingHealth } from './api';
+import { AUTH_TOKEN_STORAGE, pingHealth, getSettings, createCall, getAuthMode } from './api';
 
 export default function App() {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_TOKEN_STORAGE));
@@ -14,6 +14,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [waking, setWaking] = useState(false);
+  const [testCalling, setTestCalling] = useState(false);
   const wakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle OAuth callback: pick up ?token= or ?auth_error= from redirect
@@ -40,6 +41,13 @@ export default function App() {
     return () => { if (wakingTimer.current) clearTimeout(wakingTimer.current); };
   }, []);
 
+  // Bypass auth in dev mode
+  useEffect(() => {
+    getAuthMode().then(({ bypassAuth }) => {
+      if (bypassAuth) setAuthed(true);
+    }).catch(() => {});
+  }, []);
+
   if (!authed) {
     return <Login error={authError} />;
   }
@@ -54,6 +62,29 @@ export default function App() {
 
   function handleCreated() {
     setRefreshKey(k => k + 1);
+  }
+
+  async function handleTestCall() {
+    setTestCalling(true);
+    try {
+      const settings = await getSettings();
+      const phone = settings.testCall?.phoneNumber;
+      if (!phone) {
+        setShowSettings(true);
+        return;
+      }
+      const call = await createCall({
+        scope: 'general',
+        phoneNumber: phone,
+        objective: 'This is a test call. Briefly greet the person and confirm the call is working, then end the conversation.',
+      });
+      setRefreshKey(k => k + 1);
+      setSelectedCallId(call.id);
+    } catch (err) {
+      alert(`Test call failed: ${(err as Error).message}`);
+    } finally {
+      setTestCalling(false);
+    }
   }
 
   return (
@@ -147,6 +178,29 @@ export default function App() {
             }}
           >
             ⚙
+          </button>
+          <button
+            onClick={handleTestCall}
+            disabled={testCalling}
+            title="Quick test call to your saved number"
+            style={{
+              padding: '7px 14px',
+              borderRadius: '6px',
+              border: '1px solid var(--amber)',
+              background: testCalling ? 'var(--surface-3)' : 'rgba(245,166,35,0.06)',
+              color: testCalling ? 'var(--text-3)' : 'var(--amber)',
+              fontWeight: 700,
+              fontSize: '11px',
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              cursor: testCalling ? 'not-allowed' : 'pointer',
+              fontFamily: "'Syne', sans-serif",
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => { if (!testCalling) (e.currentTarget as HTMLElement).style.background = 'rgba(245,166,35,0.12)'; }}
+            onMouseLeave={e => { if (!testCalling) (e.currentTarget as HTMLElement).style.background = 'rgba(245,166,35,0.06)'; }}
+          >
+            {testCalling ? 'Calling...' : 'Test Call'}
           </button>
           <button
             onClick={() => setShowForm(true)}

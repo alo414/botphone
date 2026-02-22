@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8888',
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
             if (process.env.DEV_API_KEY) {
@@ -15,7 +15,7 @@ export default defineConfig({
           });
         },
       },
-      '/twilio': 'http://localhost:3000',
+      '/twilio': 'http://localhost:8888',
     },
   },
 })

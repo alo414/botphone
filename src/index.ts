@@ -79,6 +79,11 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Auth mode — lets frontend skip login when auth is bypassed
+app.get('/api/auth/mode', (_req, res) => {
+  res.json({ bypassAuth: config.devBypassAuth });
+});
+
 // Serve frontend in production
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
