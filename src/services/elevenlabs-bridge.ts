@@ -75,18 +75,37 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
       }));
     });
 
-    elWs.on('message', (data) => {
+    elWs.on('message', (data, isBinary) => {
+      // Handle binary audio frames
+      if (isBinary) {
+        if (!firstAudioLogged) {
+          firstAudioLogged = true;
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+          logger.info('ElevenLabs binary audio frame', { callId: call.id, size: buf.length });
+        }
+        // Binary frames are raw audio — base64 encode and forward to Twilio
+        if (streamSid) {
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+          twilioWs.send(JSON.stringify({
+            event: 'media',
+            streamSid,
+            media: {
+              payload: buf.toString('base64'),
+            },
+          }));
+        }
+        return;
+      }
+
       try {
         const event = JSON.parse(data.toString());
 
         switch (event.type) {
           case 'audio':
-            // Forward audio from ElevenLabs to Twilio (handle both field formats)
+            // Forward JSON audio from ElevenLabs to Twilio (handle both field formats)
             if (!firstAudioLogged) {
               firstAudioLogged = true;
-              const keys = Object.keys(event);
-              const audioKeys = event.audio ? Object.keys(event.audio) : event.audio_event ? Object.keys(event.audio_event) : [];
-              logger.info('ElevenLabs first audio event structure', { callId: call.id, keys, audioKeys });
+              logger.info('ElevenLabs JSON audio event', { callId: call.id, keys: Object.keys(event) });
             }
             const audioPayload = event.audio?.chunk ?? event.audio_event?.audio_base_64;
             if (streamSid && audioPayload) {
@@ -141,6 +160,10 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
             if (elWs && elWs.readyState === WebSocket.OPEN) {
               elWs.send(JSON.stringify({ type: 'pong', event_id: event.ping_event?.event_id }));
             }
+            break;
+
+          default:
+            logger.info('ElevenLabs unhandled event', { callId: call.id, type: event.type });
             break;
         }
       } catch (err) {
