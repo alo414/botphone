@@ -4,15 +4,14 @@ import { CallRecord, CallStatus, CallSummary, TranscriptEntry } from '../../type
 export async function createCall(params: {
   scope: string;
   phone_number: string;
-  business_name: string | null;
   objective: string;
   context: Record<string, unknown>;
 }): Promise<CallRecord> {
   const { rows } = await pool.query(
-    `INSERT INTO calls (scope, phone_number, business_name, objective, context)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO calls (scope, phone_number, objective, context)
+     VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [params.scope, params.phone_number, params.business_name, params.objective, JSON.stringify(params.context)]
+    [params.scope, params.phone_number, params.objective, JSON.stringify(params.context)]
   );
   return rows[0];
 }

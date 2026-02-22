@@ -3,8 +3,8 @@ import { ScopeDefinition } from './types';
 export const generalScope: ScopeDefinition = {
   name: 'general',
 
-  buildSystemPrompt(objective: string, _context: Record<string, unknown>, businessName?: string) {
-    const biz = businessName ? `You are calling ${businessName}.` : 'You are making a phone call.';
+  buildSystemPrompt(objective: string, context: Record<string, unknown>) {
+    const biz = context.businessName ? `You are calling ${context.businessName}.` : 'You are making a phone call.';
 
     return `## Role
 You are an AI assistant making a phone call on behalf of a user. ${biz}
@@ -19,9 +19,9 @@ You are an AI assistant making a phone call on behalf of a user. ${biz}
 ${objective}`;
   },
 
-  initialGreeting(businessName?: string) {
-    return businessName
-      ? `Hi, I'm calling ${businessName}.`
+  initialGreeting(context?: Record<string, unknown>) {
+    return context?.businessName
+      ? `Hi, I'm calling ${context.businessName}.`
       : `Hi, thanks for taking my call.`;
   },
 

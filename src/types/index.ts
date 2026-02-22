@@ -13,7 +13,6 @@ export interface CallRecord {
   id: string;
   scope: ScopeName;
   phone_number: string;
-  business_name: string | null;
   objective: string;
   context: Record<string, unknown>;
   status: CallStatus;
@@ -49,8 +48,8 @@ export interface CallSummary {
 
 export interface ScopeDefinition {
   name: ScopeName;
-  buildSystemPrompt(objective: string, context: Record<string, unknown>, businessName?: string): string;
-  initialGreeting(businessName?: string): string;
+  buildSystemPrompt(objective: string, context: Record<string, unknown>): string;
+  initialGreeting(context?: Record<string, unknown>): string;
   summaryExtractionPrompt: string;
   structuredDataSchema: Record<string, string>;
 }

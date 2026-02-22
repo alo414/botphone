@@ -24,7 +24,7 @@ export async function generateSummary(
     .map((t) => `${t.role === 'agent' ? 'AI Agent' : 'Business'}: ${t.text}`)
     .join('\n');
 
-  const prompt = `You are analyzing a phone call transcript. The call was made to ${call.business_name || 'a business'}.
+  const prompt = `You are analyzing a phone call transcript. The call was made to ${(call.context?.businessName as string) || 'a business'}.
 
 Objective of the call: ${call.objective}
 

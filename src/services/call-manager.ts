@@ -66,7 +66,7 @@ async function initiateTwilioCall(callId: string, call: { phone_number: string }
 
 async function initiateElevenLabsCall(
   callId: string,
-  call: { phone_number: string; objective: string; context: Record<string, unknown>; business_name: string | null; scope: string },
+  call: { phone_number: string; objective: string; context: Record<string, unknown>; scope: string },
   settings: { elevenlabs: { agentId: string; agentPhoneNumberId: string } }
 ): Promise<void> {
   try {
@@ -77,10 +77,9 @@ async function initiateElevenLabsCall(
       toNumber: call.phone_number,
       dynamicVariables: {
         objective: call.objective,
-        business_name: call.business_name || '',
         context: JSON.stringify(call.context),
         scope: call.scope,
-        initial_greeting: scope.initialGreeting(call.business_name || undefined),
+        initial_greeting: scope.initialGreeting(call.context),
       },
     });
 

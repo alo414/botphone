@@ -3,8 +3,8 @@ import { ScopeDefinition } from './types';
 export const generalInfoScope: ScopeDefinition = {
   name: 'general_info',
 
-  buildSystemPrompt(objective: string, context: Record<string, unknown>, businessName?: string) {
-    const biz = businessName ? `You are calling ${businessName}.` : 'You are calling a business.';
+  buildSystemPrompt(objective: string, context: Record<string, unknown>) {
+    const biz = context.businessName ? `You are calling ${context.businessName}.` : 'You are calling a business.';
     const itemName = context.itemName ? `Item to ask about: ${context.itemName}.` : '';
 
     return `You are an AI assistant making a phone call on behalf of a user. ${biz}
@@ -28,9 +28,9 @@ Key information to gather:
 - Any relevant policies or restrictions`;
   },
 
-  initialGreeting(businessName?: string) {
-    return businessName
-      ? `Hi, I'm calling ${businessName} with a quick question.`
+  initialGreeting(context?: Record<string, unknown>) {
+    return context?.businessName
+      ? `Hi, I'm calling ${context.businessName} with a quick question.`
       : `Hi, I'm calling with a quick question.`;
   },
 

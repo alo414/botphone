@@ -3,8 +3,8 @@ import { ScopeDefinition } from './types';
 export const restaurantScope: ScopeDefinition = {
   name: 'restaurant',
 
-  buildSystemPrompt(objective: string, context: Record<string, unknown>, businessName?: string) {
-    const biz = businessName ? `You are calling ${businessName}.` : 'You are calling a restaurant.';
+  buildSystemPrompt(objective: string, context: Record<string, unknown>) {
+    const biz = context.businessName ? `You are calling ${context.businessName}.` : 'You are calling a restaurant.';
     const partySize = context.partySize ? `Party size: ${context.partySize}.` : '';
     const prefDate = context.preferredDate ? `Preferred date: ${context.preferredDate}.` : '';
     const prefTime = context.preferredTime ? `Preferred time: ${context.preferredTime}.` : '';
@@ -30,9 +30,9 @@ Key information to gather:
 - Any special instructions or requirements`;
   },
 
-  initialGreeting(businessName?: string) {
-    return businessName
-      ? `Hi, I'm calling about ${businessName}.`
+  initialGreeting(context?: Record<string, unknown>) {
+    return context?.businessName
+      ? `Hi, I'm calling about ${context.businessName}.`
       : `Hi, I'm calling about your restaurant.`;
   },
 

@@ -3,8 +3,8 @@ import { ScopeDefinition } from './types';
 export const appointmentScope: ScopeDefinition = {
   name: 'appointment',
 
-  buildSystemPrompt(objective: string, context: Record<string, unknown>, businessName?: string) {
-    const biz = businessName ? `You are calling ${businessName}.` : 'You are calling a business.';
+  buildSystemPrompt(objective: string, context: Record<string, unknown>) {
+    const biz = context.businessName ? `You are calling ${context.businessName}.` : 'You are calling a business.';
     const prefDate = context.preferredDate ? `Preferred date: ${context.preferredDate}.` : '';
     const prefTime = context.preferredTime ? `Preferred time: ${context.preferredTime}.` : '';
 
@@ -30,9 +30,9 @@ Key information to gather:
 - Prerequisites (e.g., bring ID, arrive early, forms to fill out)`;
   },
 
-  initialGreeting(businessName?: string) {
-    return businessName
-      ? `Hi, I'm calling ${businessName} to schedule an appointment.`
+  initialGreeting(context?: Record<string, unknown>) {
+    return context?.businessName
+      ? `Hi, I'm calling ${context.businessName} to schedule an appointment.`
       : `Hi, I'm calling to schedule an appointment.`;
   },
 

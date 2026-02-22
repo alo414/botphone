@@ -177,7 +177,8 @@ export function CallDetail({ callId, onBack }: Props) {
 
   const isActive = ACTIVE.has(call.status);
   const transcript: TranscriptItem[] = isActive ? liveTranscript : (call.transcript || []);
-  const name = call.business_name || call.phone_number;
+  const businessName = call.context?.businessName as string | undefined;
+  const name = businessName || call.phone_number;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', animation: 'fade-in 0.2s ease' }}>
@@ -237,7 +238,7 @@ export function CallDetail({ callId, onBack }: Props) {
               )}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-3)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {call.business_name && <span>{call.phone_number}</span>}
+              {businessName && <span>{call.phone_number}</span>}
               <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{call.scope}</span>
               <span>{new Date(call.created_at).toLocaleString()}</span>
               {call.duration_seconds && <span>{call.duration_seconds}s</span>}

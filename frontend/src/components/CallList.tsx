@@ -71,7 +71,7 @@ export function CallList({ selectedCallId, onSelectCall, refreshKey }: Props) {
       {sorted.map((call, i) => {
         const isSelected = call.id === selectedCallId;
         const isActive = ACTIVE.has(call.status);
-        const name = call.business_name || call.phone_number;
+        const name = (call.context?.businessName as string) || call.phone_number;
 
         return (
           <button

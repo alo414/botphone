@@ -20,7 +20,6 @@ export interface CallRecord {
   id: string;
   scope: string;
   phone_number: string;
-  business_name: string | null;
   objective: string;
   context: Record<string, unknown>;
   status: string;

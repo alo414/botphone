@@ -36,12 +36,12 @@ function createMcpServer(): McpServer {
         }
 
         let resolvedPhone: string;
-        let businessName: string | null = null;
+        const callContext = context || {};
 
         if (place_id) {
           const place = await resolvePlaceId(place_id);
           resolvedPhone = toE164(place.phoneNumber);
-          businessName = place.businessName;
+          callContext.businessName = place.businessName;
         } else {
           if (!isValidPhone(phone_number!)) {
             return { content: [{ type: 'text' as const, text: 'Error: invalid phone number format' }], isError: true };
@@ -52,9 +52,8 @@ function createMcpServer(): McpServer {
         const call = await callQueries.createCall({
           scope,
           phone_number: resolvedPhone,
-          business_name: businessName,
           objective,
-          context: context || {},
+          context: callContext,
         });
 
         initiateCall(call.id).catch((err) => {
@@ -90,6 +89,7 @@ function createMcpServer(): McpServer {
         }
 
         // Build summary response
+        const businessName = callContext.businessName as string | undefined;
         const target = businessName ? `${businessName} (${resolvedPhone})` : resolvedPhone;
 
         if (finished.status === 'completed' && finished.summary) {
@@ -149,7 +149,7 @@ function createMcpServer(): McpServer {
         const header = `${'ID'.padEnd(36)} | ${'STATUS'.padEnd(12)} | ${'PHONE'.padEnd(15)} | BUSINESS / OBJECTIVE`;
         const divider = '-'.repeat(100);
         const rows = calls.map(c => {
-          const label = c.business_name || c.objective.slice(0, 40);
+          const label = (c.context?.businessName as string) || c.objective.slice(0, 40);
           return `${c.id} | ${c.status.padEnd(12)} | ${c.phone_number.padEnd(15)} | ${label}`;
         });
 
@@ -183,7 +183,7 @@ function createMcpServer(): McpServer {
           `Call ${call.id}`,
           `Status:    ${call.status}`,
           `Phone:     ${call.phone_number}`,
-          call.business_name ? `Business:  ${call.business_name}` : null,
+          call.context?.businessName ? `Business:  ${call.context.businessName}` : null,
           `Scope:     ${call.scope}`,
           `Objective: ${call.objective}`,
           `Created:   ${call.created_at.toISOString()}`,

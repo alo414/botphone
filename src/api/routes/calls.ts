@@ -29,12 +29,12 @@ callsRouter.post('/', async (req, res) => {
     }
 
     let phoneNumber: string;
-    let businessName: string | null = null;
+    const context = parsed.context || {};
 
     if (parsed.placeId) {
       const place = await resolvePlaceId(parsed.placeId);
       phoneNumber = toE164(place.phoneNumber);
-      businessName = place.businessName;
+      context.businessName = place.businessName;
     } else {
       if (!isValidPhone(parsed.phoneNumber!)) {
         res.status(400).json({ error: 'Invalid phone number' });
@@ -46,9 +46,8 @@ callsRouter.post('/', async (req, res) => {
     const call = await callQueries.createCall({
       scope: parsed.scope,
       phone_number: phoneNumber,
-      business_name: businessName,
       objective: parsed.objective,
-      context: parsed.context || {},
+      context,
     });
 
     // Fire and forget — initiateCall updates the DB as the call progresses

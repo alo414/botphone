@@ -36,7 +36,7 @@ export function createMediaBridge(
   let audioReceived = false;
 
   const scope = getScope(call.scope);
-  const systemPrompt = scope.buildSystemPrompt(call.objective, call.context, call.business_name || undefined);
+  const systemPrompt = scope.buildSystemPrompt(call.objective, call.context);
 
   function cleanup() {
     if (callTimeout) clearTimeout(callTimeout);
@@ -162,7 +162,7 @@ export function createMediaBridge(
             type: 'response.create',
             response: {
               modalities: ['text', 'audio'],
-              instructions: `Begin the call now. ${scope.initialGreeting(call.business_name || undefined)} Your specific objective for this call is: "${call.objective}". Get straight to it after a brief greeting.`,
+              instructions: `Begin the call now. ${scope.initialGreeting(call.context)} Your specific objective for this call is: "${call.objective}". Get straight to it after a brief greeting.`,
             },
           }));
           break;
@@ -203,7 +203,7 @@ export function createMediaBridge(
                 type: 'response.create',
                 response: {
                   modalities: ['text', 'audio'],
-                  instructions: `The other party has not spoken yet. Greet them now. ${scope.initialGreeting(call.business_name || undefined)} Your objective is: "${call.objective}".`,
+                  instructions: `The other party has not spoken yet. Greet them now. ${scope.initialGreeting(call.context)} Your objective is: "${call.objective}".`,
                 },
               }));
             }
