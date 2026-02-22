@@ -1,6 +1,5 @@
 import WebSocket from 'ws';
 import { logger } from '../utils/logger';
-import { twilioToElevenLabs, elevenLabsToTwilio } from '../utils/audio';
 import { getScope } from '../scopes';
 import { CallRecord } from '../types';
 import type { MediaBridgeCallbacks } from './media-bridge';
@@ -27,9 +26,7 @@ export function createElevenLabsBridge(
   let noAudioHangupTimer: NodeJS.Timeout | null = null;
   let ended = false;
   let audioReceived = false;
-  // Audio format negotiated by ElevenLabs (from conversation_initiation_metadata)
-  let elOutputRate = 24000;
-  let elInputRate = 16000;
+  let firstAudioLogged = false;
 
   const scope = getScope(call.scope);
   const basePrompt = scope.buildSystemPrompt(call.objective, call.context, call.business_name || undefined);
@@ -69,19 +66,32 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
       elWs!.send(JSON.stringify({
         type: 'conversation_initiation_client_data',
+        conversation_config_override: {
+          audio: {
+            input: { encoding: 'ulaw_8000' },
+            output: { encoding: 'ulaw_8000' },
+          },
+        },
       }));
     });
 
     elWs.on('message', (data, isBinary) => {
-      // Handle binary audio frames — ElevenLabs sends raw PCM
+      // Handle binary audio frames
       if (isBinary) {
+        if (!firstAudioLogged) {
+          firstAudioLogged = true;
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+          logger.info('ElevenLabs binary audio frame', { callId: call.id, size: buf.length });
+        }
+        // Binary frames are raw audio — base64 encode and forward to Twilio
         if (streamSid) {
           const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-          const mulawBase64 = elevenLabsToTwilio(buf, elOutputRate);
           twilioWs.send(JSON.stringify({
             event: 'media',
             streamSid,
-            media: { payload: mulawBase64 },
+            media: {
+              payload: buf.toString('base64'),
+            },
           }));
         }
         return;
@@ -91,21 +101,23 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
         const event = JSON.parse(data.toString());
 
         switch (event.type) {
-          case 'audio': {
-            // Forward JSON audio from ElevenLabs to Twilio
+          case 'audio':
+            // Forward JSON audio from ElevenLabs to Twilio (handle both field formats)
+            if (!firstAudioLogged) {
+              firstAudioLogged = true;
+              logger.info('ElevenLabs JSON audio event', { callId: call.id, keys: Object.keys(event) });
+            }
             const audioPayload = event.audio?.chunk ?? event.audio_event?.audio_base_64;
             if (streamSid && audioPayload) {
-              // Decode base64 PCM, convert to mulaw
-              const pcmBuf = Buffer.from(audioPayload, 'base64');
-              const mulawBase64 = elevenLabsToTwilio(pcmBuf, elOutputRate);
               twilioWs.send(JSON.stringify({
                 event: 'media',
                 streamSid,
-                media: { payload: mulawBase64 },
+                media: {
+                  payload: audioPayload,
+                },
               }));
             }
             break;
-          }
 
           case 'agent_response':
             if (event.agent_response_event?.agent_response) {
@@ -116,6 +128,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
           case 'user_transcript':
             if (event.user_transcription_event?.user_transcript) {
+              // Other party spoke — cancel silence timers
               if (!audioReceived) {
                 audioReceived = true;
                 if (noAudioHangupTimer) clearTimeout(noAudioHangupTimer);
@@ -135,30 +148,15 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
             logger.error('ElevenLabs error event', { callId: call.id, error: event });
             break;
 
-          case 'conversation_initiation_metadata': {
-            const meta = event.conversation_initiation_metadata_event ?? event;
-            // Parse negotiated audio formats (e.g. "pcm_24000" → 24000)
-            const outFmt = meta.agent_output_audio_format;
-            const inFmt = meta.user_input_audio_format;
-            if (outFmt) {
-              const rate = parseInt(outFmt.replace(/\D/g, ''), 10);
-              if (rate > 0) elOutputRate = rate;
-            }
-            if (inFmt) {
-              const rate = parseInt(inFmt.replace(/\D/g, ''), 10);
-              if (rate > 0) elInputRate = rate;
-            }
+          case 'conversation_initiation_metadata':
             logger.info('ElevenLabs conversation initiated', {
               callId: call.id,
-              outputFormat: outFmt,
-              inputFormat: inFmt,
-              elOutputRate,
-              elInputRate,
+              metadata: JSON.stringify(event.conversation_initiation_metadata_event ?? event),
             });
             break;
-          }
 
           case 'ping':
+            // Respond to pings to keep connection alive
             if (elWs && elWs.readyState === WebSocket.OPEN) {
               elWs.send(JSON.stringify({ type: 'pong', event_id: event.ping_event?.event_id }));
             }
@@ -188,6 +186,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
     finish();
   }, MAX_CALL_DURATION_MS);
 
+  // Connect to ElevenLabs — first_message is controlled by the agent's dashboard config
   connectElevenLabs();
 
   // Handle Twilio WebSocket messages
@@ -205,6 +204,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           logger.info('Twilio media stream started (ElevenLabs bridge)', { callId: call.id, streamSid });
 
           if (!config.isVoicemail) {
+            // No-audio hangup: if no speech detected by N seconds, end the call
             noAudioHangupTimer = setTimeout(() => {
               if (!audioReceived && !ended) {
                 logger.warn('No audio after hangup delay, ending call (ElevenLabs)', { callId: call.id });
@@ -215,11 +215,10 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           break;
 
         case 'media':
-          // Convert Twilio mulaw 8kHz → PCM at ElevenLabs' expected input rate, then send
+          // Forward audio from Twilio to ElevenLabs
           if (elWs && elWs.readyState === WebSocket.OPEN) {
-            const pcmBase64 = twilioToElevenLabs(msg.media.payload, elInputRate);
             elWs.send(JSON.stringify({
-              user_audio_chunk: pcmBase64,
+              user_audio_chunk: msg.media.payload,
             }));
           }
           break;
