@@ -3,7 +3,7 @@ import { pool } from '../pool';
 export interface AppSettings {
   provider: 'openai' | 'elevenlabs';
   openai: { voice: string; speed: number };
-  elevenlabs: { agentId: string };
+  elevenlabs: { agentId: string; agentPhoneNumberId: string };
   call: { fallbackGreetDelaySec: number; noAudioHangupDelaySec: number };
   testCall: { phoneNumber: string };
 }
@@ -11,7 +11,7 @@ export interface AppSettings {
 const DEFAULT_SETTINGS: AppSettings = {
   provider: 'openai',
   openai: { voice: 'ash', speed: 1.2 },
-  elevenlabs: { agentId: '' },
+  elevenlabs: { agentId: '', agentPhoneNumberId: '' },
   call: { fallbackGreetDelaySec: 15, noAudioHangupDelaySec: 30 },
   testCall: { phoneNumber: '' },
 };

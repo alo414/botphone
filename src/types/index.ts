@@ -18,6 +18,7 @@ export interface CallRecord {
   context: Record<string, unknown>;
   status: CallStatus;
   twilio_call_sid: string | null;
+  elevenlabs_conversation_id: string | null;
   summary: CallSummary | null;
   duration_seconds: number | null;
   created_at: Date;

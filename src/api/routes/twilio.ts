@@ -5,7 +5,6 @@ import { twilioWebhookAuth } from '../../middleware/twilioAuth';
 import { logger } from '../../utils/logger';
 import { handleStatusCallback, setActiveCallTranscript, handleCallEnd } from '../../services/call-manager';
 import { createMediaBridge } from '../../services/media-bridge';
-import { createElevenLabsBridge } from '../../services/elevenlabs-bridge';
 import * as callQueries from '../../db/queries/calls';
 import { getSettings } from '../../db/queries/settings';
 import type WebSocket from 'ws';
@@ -113,31 +112,14 @@ export async function handleMediaStream(ws: WebSocket, req: Request) {
   };
 
   const settings = await getSettings();
-  const callBehavior = {
+
+  // Media stream is only used for OpenAI Realtime. ElevenLabs calls go through the ElevenLabs API directly.
+  createMediaBridge(ws, call, callbacks, {
+    voice: settings.openai.voice,
+    speed: settings.openai.speed,
     fallbackGreetDelaySec: settings.call.fallbackGreetDelaySec,
     noAudioHangupDelaySec: settings.call.noAudioHangupDelaySec,
-  };
-
-  if (settings.provider === 'elevenlabs') {
-    if (!config.elevenlabs.apiKey) {
-      logger.warn('ElevenLabs selected but ELEVENLABS_API_KEY is not set; falling back to OpenAI', { callId });
-      createMediaBridge(ws, call, callbacks, callBehavior);
-    } else {
-      logger.info('Using ElevenLabs bridge', { callId, agentId: settings.elevenlabs.agentId, isVoicemail });
-      createElevenLabsBridge(ws, call, callbacks, {
-        agentId: settings.elevenlabs.agentId,
-        apiKey: config.elevenlabs.apiKey,
-        isVoicemail,
-        ...callBehavior,
-      });
-    }
-  } else {
-    createMediaBridge(ws, call, callbacks, {
-      voice: settings.openai.voice,
-      speed: settings.openai.speed,
-      ...callBehavior,
-    });
-  }
+  });
 
   // Replay buffered messages so the bridge processes the 'connected' and 'start' events
   for (const raw of buffered) {

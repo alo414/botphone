@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS transcript_entries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_transcript_entries_call_id ON transcript_entries(call_id);
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS elevenlabs_conversation_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_calls_status ON calls(status);
 CREATE INDEX IF NOT EXISTS idx_calls_created_at ON calls(created_at DESC);
 

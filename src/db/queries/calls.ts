@@ -74,6 +74,13 @@ export async function updateCallSid(id: string, sid: string): Promise<void> {
   );
 }
 
+export async function updateElevenLabsConversationId(id: string, conversationId: string): Promise<void> {
+  await pool.query(
+    'UPDATE calls SET elevenlabs_conversation_id = $1, updated_at = NOW() WHERE id = $2',
+    [conversationId, id]
+  );
+}
+
 export async function updateCallSummary(id: string, summary: CallSummary, durationSeconds: number): Promise<void> {
   await pool.query(
     'UPDATE calls SET summary = $1, duration_seconds = $2, status = $3, updated_at = NOW() WHERE id = $4',

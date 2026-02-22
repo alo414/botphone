@@ -10,6 +10,7 @@ const settingsSchema = z.object({
   }).optional(),
   elevenlabs: z.object({
     agentId: z.string().max(200),
+    agentPhoneNumberId: z.string().max(200).optional(),
   }).optional(),
 });
 
@@ -33,7 +34,7 @@ router.put('/', async (req, res) => {
       res.status(400).json({ error: 'Validation error', details: parsed.error.issues });
       return;
     }
-    const updated = await updateSettings(parsed.data);
+    const updated = await updateSettings(parsed.data as any);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
