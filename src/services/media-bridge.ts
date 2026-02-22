@@ -11,6 +11,7 @@ interface TranscriptItem {
 
 const OPENAI_REALTIME_URL = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17';
 const MAX_CALL_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const VALID_REALTIME_VOICES = new Set(['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar']);
 
 export interface MediaBridgeCallbacks {
   onTranscriptUpdate: (entries: TranscriptItem[]) => void;
@@ -85,7 +86,7 @@ export function createMediaBridge(
       session: {
         modalities: ['text', 'audio'],
         instructions: systemPrompt,
-        voice: options?.voice ?? 'ash',
+        voice: (options?.voice && VALID_REALTIME_VOICES.has(options.voice)) ? options.voice : 'ash',
         speed: options?.speed ?? 1.2,
         input_audio_format: 'g711_ulaw',
         output_audio_format: 'g711_ulaw',
