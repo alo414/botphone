@@ -156,7 +156,14 @@ export function createMediaBridge(
 
         case 'session.updated':
           logger.info('OpenAI session configured', { callId: call.id });
-          // Wait for the other party to speak first — VAD will trigger a response when they greet
+          // Kick off the initial greeting
+          openaiWs!.send(JSON.stringify({
+            type: 'response.create',
+            response: {
+              modalities: ['text', 'audio'],
+              instructions: `Begin the call now. ${scope.initialGreeting(call.business_name || undefined)} Your specific objective for this call is: "${call.objective}". Get straight to it after a brief greeting.`,
+            },
+          }));
           break;
       }
     } catch (err) {

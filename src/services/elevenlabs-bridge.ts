@@ -14,18 +14,15 @@ export function createElevenLabsBridge(
     agentId: string;
     apiKey: string;
     isVoicemail?: boolean;
-    fallbackGreetDelaySec?: number;
     noAudioHangupDelaySec?: number;
   }
 ) {
-  const FALLBACK_GREET_DELAY_MS = (config.fallbackGreetDelaySec ?? 15) * 1000;
   const NO_AUDIO_HANGUP_DELAY_MS = (config.noAudioHangupDelaySec ?? 30) * 1000;
 
   const transcript: { role: 'agent' | 'user'; text: string }[] = [];
   let streamSid: string | null = null;
   let elWs: WebSocket | null = null;
   let callTimeout: NodeJS.Timeout | null = null;
-  let fallbackGreetTimer: NodeJS.Timeout | null = null;
   let noAudioHangupTimer: NodeJS.Timeout | null = null;
   let ended = false;
   let audioReceived = false;
@@ -42,7 +39,6 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
     if (ended) return;
     ended = true;
     if (callTimeout) clearTimeout(callTimeout);
-    if (fallbackGreetTimer) clearTimeout(fallbackGreetTimer);
     if (noAudioHangupTimer) clearTimeout(noAudioHangupTimer);
     if (elWs && elWs.readyState === WebSocket.OPEN) {
       elWs.close();
@@ -55,7 +51,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
     callbacks.onCallEnd([...transcript]);
   }
 
-  function connectElevenLabs(useGreeting: boolean) {
+  function connectElevenLabs() {
     const url = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${encodeURIComponent(config.agentId)}`;
 
     elWs = new WebSocket(url, {
@@ -65,7 +61,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
     });
 
     elWs.on('open', () => {
-      logger.info('ElevenLabs WS connected', { callId: call.id, useGreeting });
+      logger.info('ElevenLabs WS connected', { callId: call.id });
 
       elWs!.send(JSON.stringify({
         type: 'conversation_initiation_client_data',
@@ -74,14 +70,6 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
             prompt: {
               prompt: systemPrompt,
             },
-            first_message: config.isVoicemail
-              ? `Hi, I'm leaving a message regarding: ${call.objective}. ${scope.initialGreeting(call.business_name || undefined)}`
-              : useGreeting
-                ? scope.initialGreeting(call.business_name || undefined)
-                : '',
-          },
-          tts: {
-            voice_id: undefined,
           },
         },
       }));
@@ -117,7 +105,6 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
               // Other party spoke — cancel silence timers
               if (!audioReceived) {
                 audioReceived = true;
-                if (fallbackGreetTimer) clearTimeout(fallbackGreetTimer);
                 if (noAudioHangupTimer) clearTimeout(noAudioHangupTimer);
                 logger.info('Other party speech detected, cancelling silence timers', { callId: call.id });
               }
@@ -166,8 +153,8 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
     finish();
   }, MAX_CALL_DURATION_MS);
 
-  // Initial connection — wait for the other party to speak first
-  connectElevenLabs(false);
+  // Connect to ElevenLabs — first_message is controlled by the agent's dashboard config
+  connectElevenLabs();
 
   // Handle Twilio WebSocket messages
   twilioWs.on('message', (data) => {
@@ -184,19 +171,7 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
           logger.info('Twilio media stream started (ElevenLabs bridge)', { callId: call.id, streamSid });
 
           if (!config.isVoicemail) {
-            // Fallback greet: reconnect EL with a first_message if no speech detected
-            fallbackGreetTimer = setTimeout(() => {
-              if (!audioReceived && !ended) {
-                logger.info('No audio after delay, triggering fallback greeting (ElevenLabs)', { callId: call.id });
-                if (elWs) {
-                  elWs.removeAllListeners();
-                  if (elWs.readyState === WebSocket.OPEN) elWs.close();
-                }
-                connectElevenLabs(true);
-              }
-            }, FALLBACK_GREET_DELAY_MS);
-
-            // No-audio hangup: if still no speech by N seconds, end the call
+            // No-audio hangup: if no speech detected by N seconds, end the call
             noAudioHangupTimer = setTimeout(() => {
               if (!audioReceived && !ended) {
                 logger.warn('No audio after hangup delay, ending call (ElevenLabs)', { callId: call.id });
