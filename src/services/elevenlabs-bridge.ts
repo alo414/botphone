@@ -65,6 +65,12 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
       elWs!.send(JSON.stringify({
         type: 'conversation_initiation_client_data',
+        conversation_config_override: {
+          audio: {
+            input: { encoding: 'ulaw_8000' },
+            output: { encoding: 'ulaw_8000' },
+          },
+        },
       }));
     });
 
