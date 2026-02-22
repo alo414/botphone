@@ -65,12 +65,6 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
 
       elWs!.send(JSON.stringify({
         type: 'conversation_initiation_client_data',
-        conversation_config_override: {
-          audio: {
-            input: { encoding: 'ulaw_8000' },
-            output: { encoding: 'ulaw_8000' },
-          },
-        },
       }));
     });
 
@@ -81,12 +75,12 @@ IMPORTANT: You have reached a voicemail. Leave your message clearly and concisel
         switch (event.type) {
           case 'audio':
             // Forward audio from ElevenLabs to Twilio
-            if (streamSid && event.audio_event?.audio_base_64) {
+            if (streamSid && event.audio?.chunk) {
               twilioWs.send(JSON.stringify({
                 event: 'media',
                 streamSid,
                 media: {
-                  payload: event.audio_event.audio_base_64,
+                  payload: event.audio.chunk,
                 },
               }));
             }
