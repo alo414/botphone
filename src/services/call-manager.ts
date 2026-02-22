@@ -71,6 +71,7 @@ async function initiateElevenLabsCall(
 ): Promise<void> {
   try {
     const scope = getScope(call.scope as any);
+    const greeting = (call.context.initialGreeting as string) || scope.initialGreeting(call.context);
     const result = await initiateOutboundCall({
       agentId: settings.elevenlabs.agentId,
       agentPhoneNumberId: settings.elevenlabs.agentPhoneNumberId,
@@ -79,7 +80,7 @@ async function initiateElevenLabsCall(
         objective: call.objective,
         context: JSON.stringify(call.context),
         scope: call.scope,
-        initial_greeting: scope.initialGreeting(call.context),
+        initial_greeting: greeting,
       },
     });
 

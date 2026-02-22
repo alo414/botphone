@@ -199,6 +199,20 @@ export function Settings({ onClose }: Props) {
                     Find your Agent ID in the ElevenLabs dashboard under Conversational AI.
                   </div>
                 </div>
+
+                <div>
+                  <label style={label}>Agent Phone Number ID</label>
+                  <input
+                    type="text"
+                    value={settings.elevenlabs.agentPhoneNumberId ?? ''}
+                    onChange={e => setSettings({ ...settings, elevenlabs: { ...settings.elevenlabs, agentPhoneNumberId: e.target.value } })}
+                    placeholder="e.g. phnum_..."
+                    style={input}
+                  />
+                  <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px' }}>
+                    Required for outbound calls. Find it under your agent's phone number settings.
+                  </div>
+                </div>
               </div>
             )}
 

@@ -11,16 +11,30 @@ const SCOPES = [
 
 const CTX_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
   restaurant:   [
+    { key: 'businessName',  label: 'Business Name',  placeholder: 'e.g. Joe\'s Pizza' },
     { key: 'partySize',     label: 'Party Size',     placeholder: 'e.g. 4' },
     { key: 'preferredDate', label: 'Date',            placeholder: 'e.g. Friday' },
     { key: 'preferredTime', label: 'Time',            placeholder: 'e.g. 7:00 PM' },
   ],
-  general_info: [{ key: 'itemName', label: 'Item', placeholder: 'e.g. iPhone 16 Pro' }],
+  general_info: [
+    { key: 'businessName',  label: 'Business Name',  placeholder: 'e.g. Best Buy' },
+    { key: 'itemName',      label: 'Item',            placeholder: 'e.g. iPhone 16 Pro' },
+  ],
   appointment:  [
+    { key: 'businessName',  label: 'Business Name',  placeholder: 'e.g. Dr. Smith\'s Office' },
     { key: 'preferredDate', label: 'Date',            placeholder: 'e.g. next Tuesday' },
     { key: 'preferredTime', label: 'Time',            placeholder: 'e.g. morning' },
   ],
-  general: [],
+  general: [
+    { key: 'businessName',  label: 'Business Name',  placeholder: 'e.g. Acme Corp' },
+  ],
+};
+
+const DEFAULT_GREETINGS: Record<string, (ctx: Record<string, string>) => string> = {
+  restaurant:   ctx => ctx.businessName ? `Hi, I'm calling about ${ctx.businessName}.` : `Hi, I'm calling about your restaurant.`,
+  general_info: ctx => ctx.businessName ? `Hi, I'm calling ${ctx.businessName} with a quick question.` : `Hi, I'm calling with a quick question.`,
+  appointment:  ctx => ctx.businessName ? `Hi, I'm calling ${ctx.businessName} to schedule an appointment.` : `Hi, I'm calling to schedule an appointment.`,
+  general:      ctx => ctx.businessName ? `Hi, I'm calling ${ctx.businessName}.` : `Hi, thanks for taking my call.`,
 };
 
 const input: React.CSSProperties = {
@@ -57,6 +71,7 @@ export function CallForm({ onClose, onCreated }: Props) {
   const [placeId, setPlaceId]   = useState('');
   const [objective, setObj]     = useState('');
   const [ctx, setCtx]           = useState<Record<string, string>>({});
+  const [greeting, setGreeting] = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
@@ -64,10 +79,12 @@ export function CallForm({ onClose, onCreated }: Props) {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const context: Record<string, unknown> = Object.fromEntries(Object.entries(ctx).filter(([, v]) => v));
+    if (greeting.trim()) context.initialGreeting = greeting.trim();
     const payload: CreateCallPayload = {
       scope,
       objective,
-      context: Object.fromEntries(Object.entries(ctx).filter(([, v]) => v)),
+      context,
     };
     if (inputType === 'phone') payload.phoneNumber = phone;
     else payload.placeId = placeId;
@@ -185,6 +202,21 @@ export function CallForm({ onClose, onCreated }: Props) {
             </div>
           </div>
         )}
+
+        {/* Initial Greeting */}
+        <div>
+          <span style={label}>Initial Greeting</span>
+          <input
+            type="text"
+            value={greeting}
+            onChange={e => setGreeting(e.target.value)}
+            placeholder={(DEFAULT_GREETINGS[scope] || DEFAULT_GREETINGS.general)(ctx)}
+            style={input}
+          />
+          <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>
+            What the agent says first. Leave blank for the default.
+          </div>
+        </div>
 
         {error && (
           <div style={{

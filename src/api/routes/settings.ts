@@ -12,6 +12,13 @@ const settingsSchema = z.object({
     agentId: z.string().max(200),
     agentPhoneNumberId: z.string().max(200).optional(),
   }).optional(),
+  call: z.object({
+    fallbackGreetDelaySec: z.number().min(1).max(120),
+    noAudioHangupDelaySec: z.number().min(1).max(300),
+  }).optional(),
+  testCall: z.object({
+    phoneNumber: z.string().max(30),
+  }).optional(),
 });
 
 const router = Router();

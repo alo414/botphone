@@ -111,7 +111,7 @@ export async function getLiveTranscript(id: string): Promise<{ transcript: Trans
 export interface AppSettings {
   provider: 'openai' | 'elevenlabs';
   openai: { voice: string; speed: number };
-  elevenlabs: { agentId: string };
+  elevenlabs: { agentId: string; agentPhoneNumberId: string };
   call: { fallbackGreetDelaySec: number; noAudioHangupDelaySec: number };
   testCall: { phoneNumber: string };
 }
