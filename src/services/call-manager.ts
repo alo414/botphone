@@ -132,6 +132,12 @@ function startElevenLabsPoll(callId: string, conversationId: string): void {
 
       // Terminal states
       if (conv.status === 'done' || conv.status === 'failed') {
+        logger.info('ElevenLabs conversation reached terminal state', {
+          callId,
+          conversationId,
+          status: conv.status,
+          terminationReason: conv.metadata?.termination_reason,
+        });
         clearInterval(timer);
         await handleElevenLabsCallEnd(callId, conv);
       }
@@ -156,6 +162,12 @@ async function handleElevenLabsCallEnd(callId: string, conv: Awaited<ReturnType<
   }
 
   if (conv.status === 'failed') {
+    logger.error('ElevenLabs call failed', {
+      callId,
+      conversationId: conv.conversation_id,
+      terminationReason: conv.metadata?.termination_reason,
+      metadata: conv.metadata,
+    });
     await callQueries.updateCallStatus(callId, 'failed');
     activeCalls.delete(callId);
     return;
