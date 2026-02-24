@@ -5,6 +5,7 @@ import { z } from 'zod';
 import * as callQueries from '../../db/queries/calls';
 import { initiateCall, getActiveCall } from '../../services/call-manager';
 import { resolvePlaceId } from '../../services/google-places';
+import { hangupCall } from '../../services/twilio';
 import { toE164, isValidPhone } from '../../utils/phone';
 import { logger } from '../../utils/logger';
 import { CallStatus } from '../../types';
@@ -211,6 +212,37 @@ function createMcpServer(): McpServer {
 
         return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
       } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    'hangup_call',
+    'Hang up a call that is currently in progress, ringing, or queued. Use this if the user wants to cancel or end an active call.',
+    {
+      id: z.string().uuid().describe('Call ID to hang up'),
+    },
+    async ({ id }) => {
+      try {
+        const call = await callQueries.getCall(id);
+        if (!call) {
+          return { content: [{ type: 'text' as const, text: `Call ${id} not found` }], isError: true };
+        }
+
+        const activeStatuses: CallStatus[] = ['queued', 'ringing', 'in_progress'];
+        if (!activeStatuses.includes(call.status)) {
+          return { content: [{ type: 'text' as const, text: `Call is already ${call.status} — cannot hang up.` }], isError: true };
+        }
+
+        if (!call.twilio_call_sid) {
+          return { content: [{ type: 'text' as const, text: `Call has no Twilio SID — cannot hang up.` }], isError: true };
+        }
+
+        await hangupCall(call.twilio_call_sid);
+        return { content: [{ type: 'text' as const, text: `Call ${id} has been hung up.` }] };
+      } catch (err) {
+        logger.error('MCP hangup_call error', { id, error: (err as Error).message });
         return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true };
       }
     }
